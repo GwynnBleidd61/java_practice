@@ -1,47 +1,59 @@
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.Semaphore;
+
 
 public class Main {
     public static void main(String[] args) {
-        List<Integer> numbers = Collections.synchronizedList(new ArrayList<>());
-        CountDownLatch countDownLatch = new CountDownLatch(2);
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    for (int i = 0; i < 100; i++) {
-                        Thread.sleep(100);
-                        numbers.add(i);
-                    }
+        TreeMap<Character, Long> treeMap = new TreeMap<>();
+        CountDownLatch countDownLatch = new CountDownLatch(10);
+        Semaphore semaphore = new Semaphore(3);
+        for (int i = 0; i < 10; i++) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("Preparing"));
                     countDownLatch.countDown();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    for (int i = 0; i < 100; i++) {
-                        Thread.sleep(100);
-                        numbers.add(i);
+                    try {
+                        countDownLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
                     }
-                    countDownLatch.countDown();
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("First road"));
+                    try {
+                        semaphore.acquire();
+                        treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("tunnel"));
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        semaphore.release();
+                    }
+                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("Second road"));
+                    for (Map.Entry<Character, Long> entry : treeMap.entrySet()) {
+                        System.out.println(entry.getKey() + ": " + entry.getValue());
+                    }
+
                 }
-            }
-        }).start();
+            }).start();
+        }
+    }
+
+    private static long road(String roadName) {
+        long millis = (long) (Math.random() * 5000 + 1000);
+        char name = Thread.currentThread().getName().charAt(0);
+        System.out.println(name + " started " + roadName);
         try {
-            countDownLatch.await();
+            Thread.sleep(millis);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-        System.out.println(numbers.size());
+        System.out.println(name + " finished " + roadName);
+        return millis;
     }
+
+
 }
 
