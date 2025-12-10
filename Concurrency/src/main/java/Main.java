@@ -15,23 +15,23 @@ public class Main {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("Preparing"));
+                    treeMap.put(Thread.currentThread().getName().charAt(7), road("Preparing"));
                     countDownLatch.countDown();
                     try {
                         countDownLatch.await();
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
-                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("First road"));
+                    treeMap.put(Thread.currentThread().getName().charAt(7), road("First road"));
                     try {
                         semaphore.acquire();
-                        treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("tunnel"));
+                        treeMap.put(Thread.currentThread().getName().charAt(7), road("tunnel"));
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } finally {
                         semaphore.release();
                     }
-                    treeMap.putIfAbsent(Thread.currentThread().getName().charAt(0), road("Second road"));
+                    treeMap.put(Thread.currentThread().getName().charAt(7), road("Second road"));
                     for (Map.Entry<Character, Long> entry : treeMap.entrySet()) {
                         System.out.println(entry.getKey() + ": " + entry.getValue());
                     }
@@ -43,7 +43,7 @@ public class Main {
 
     private static long road(String roadName) {
         long millis = (long) (Math.random() * 5000 + 1000);
-        char name = Thread.currentThread().getName().charAt(0);
+        char name = Thread.currentThread().getName().charAt(7);
         System.out.println(name + " started " + roadName);
         try {
             Thread.sleep(millis);
