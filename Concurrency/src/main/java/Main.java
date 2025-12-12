@@ -1,43 +1,47 @@
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 
 
 public class Main {
     public static void main(String[] args) {
-        TreeMap<Character, Long> treeMap = new TreeMap<>();
+        ConcurrentSkipListMap<Character, Long> map = new ConcurrentSkipListMap<>();
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(10);
         CountDownLatch countDownLatch = new CountDownLatch(10);
         Semaphore semaphore = new Semaphore(3);
         for (int i = 0; i < 10; i++) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    treeMap.put(Thread.currentThread().getName().charAt(7), road("Preparing"));
-                    countDownLatch.countDown();
+                    map.merge(Thread.currentThread().getName().charAt(7), road("Preparing"), Long::sum);
                     try {
-                        countDownLatch.await();
-                    } catch (InterruptedException e) {
+                        cyclicBarrier.await();
+                    } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                    treeMap.put(Thread.currentThread().getName().charAt(7), road("First road"));
+                    map.merge(Thread.currentThread().getName().charAt(7), road("First road"), Long::sum);
                     try {
                         semaphore.acquire();
-                        treeMap.put(Thread.currentThread().getName().charAt(7), road("tunnel"));
+                        map.merge(Thread.currentThread().getName().charAt(7), road("tunnel"), Long::sum);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } finally {
                         semaphore.release();
                     }
-                    treeMap.put(Thread.currentThread().getName().charAt(7), road("Second road"));
-                    for (Map.Entry<Character, Long> entry : treeMap.entrySet()) {
-                        System.out.println(entry.getKey() + ": " + entry.getValue());
-                    }
+                    map.merge(Thread.currentThread().getName().charAt(7),road("Second road"), Long::sum);
+                    countDownLatch.countDown();
 
                 }
             }).start();
+        }
+
+        try {
+            countDownLatch.await();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        for (Map.Entry<Character, Long> entry : map.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue());
         }
     }
 
